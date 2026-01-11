@@ -1,4 +1,4 @@
-// ========= Globals =========
+
 let animRunning = false;
 let animIndex   = 0;
 let animTimer   = null;
@@ -1344,3 +1344,4 @@ if (themeToggleBtn) {
         themeToggleBtn.textContent = isLight ? '🌙 Dark' : '☀️ Light';
     });
 }
+
