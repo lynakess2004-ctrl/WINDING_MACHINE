@@ -537,11 +537,7 @@ function displayResults(
             <div class="value">${q.toFixed(3)}</div>
             <small style="opacity:0.9;font-size:12px;">Theoretical q · ${qType}</small>
         </div>
-        <div class="result-card">
-            <h4>Effective q from Layout <button class="info-icon" onclick="showInfo('actualq')">i</button></h4>
-            <div class="value">${actualQText}</div>
-            <small style="opacity:0.9;font-size:12px;">From winding (A-phase coils / poles)</small>
-        </div>
+       
         <div class="result-card">
             <h4>Pole Pitch (τ) <button class="info-icon" onclick="showInfo('tau')">i</button></h4>
             <div class="value">${tau.toFixed(3)}</div>
@@ -552,15 +548,11 @@ function displayResults(
             <div class="value">${y}</div>
             <small style="opacity:0.9;font-size:12px;">${pitchInfo}</small>
         </div>
+      
         <div class="result-card">
-            <h4>Winding Type <button class="info-icon" onclick="showInfo('combo')">i</button></h4>
-            <div class="value" style="font-size:18px;">${comboLabel}</div>
-            <small style="opacity:0.9;font-size:12px;">q: ${qType} · Pitch: ${pitchType}</small>
-        </div>
-        <div class="result-card">
-            <h4>Phase Distribution <button class="info-icon" onclick="showInfo('alpha')">i</button></h4>
-            <div class="value">${phaseDistributionLabel}</div>
-            <small style="opacity:0.9;font-size:12px;">${phaseDistributionDetail}</small>
+            <h4>Electrical Angle (α) <button class="info-icon" onclick="showInfo('alpha')">i</button></h4>
+            <div class="value">${alpha.toFixed(2)}°</div>
+            <small style="opacity:0.9;font-size:12px;">Angle between consecutive slots</small>
         </div>
         <div class="result-card">
             <h4>Coils per Phase <button class="info-icon" onclick="showInfo('coils')">i</button></h4>
@@ -569,12 +561,10 @@ function displayResults(
                 A:${phaseCoilCount.A} · B:${phaseCoilCount.B} · C:${phaseCoilCount.C}
             </small>
         </div>
-        <div class="result-card">
-            <h4>Winding Verification <button class="info-icon" onclick="showInfo('verify')">i</button></h4>
-            <div class="value">${allSlotsUsedTop && allSlotsUsedBottom ? '✓' : '✗'}</div>
-            <small style="opacity:0.9;font-size:12px;">
-                ${allSlotsUsedTop && allSlotsUsedBottom ? 'All slots filled (top & bottom)' : 'Check configuration'}
-            </small>
+         <div class="result-card">
+            <h4>Winding Type <button class="info-icon" onclick="showInfo('combo')">i</button></h4>
+            <div class="value" style="font-size:18px;">${comboLabel}</div>
+            <small style="opacity:0.9;font-size:12px;">q: ${qType} · Pitch: ${pitchType}</small>
         </div>
         <div class="result-card">
             <h4>Pitch Factor (Kp) <button class="info-icon" onclick="showInfo('kp')">i</button></h4>
@@ -588,6 +578,7 @@ function displayResults(
             <h4>Winding Factor (Kw) <button class="info-icon" onclick="showInfo('kw')">i</button></h4>
             <div class="value">${Kw.toFixed(4)}</div>
         </div>
+        
     `;
 }
 
@@ -1062,8 +1053,12 @@ function drawCircularDiagram(winding, Z) {
 
 
 // ========= Winding table =========
+
 function createWindingTable(winding) {
     const table = document.getElementById('windingTable');
+    const Z = winding.length;
+    const p2 = parseInt(document.getElementById('poles').value, 10);
+    const polePitchSlots = Z / p2;
 
     let html = `
         <tr>
@@ -1076,33 +1071,36 @@ function createWindingTable(winding) {
         </tr>
     `;
 
-    // Phase colors (KEEP your logic)
     const phaseColors = {
-        'A_pos': '#ef4444',   // A+
-        'A_neg': '#ad5858ff',   // A−
-        'B_pos': '#11c4b8ff',   // B+
-        'B_neg': '#5d9996ff',   // B−
-        'C_pos': '#ebcb2fff',   // C+
-        'C_neg': '#ddce7cff'    // C−
-     
+        'A_pos': '#ef4444',
+        'A_neg': '#ad5858ff',
+        'B_pos': '#11c4b8ff',
+        'B_neg': '#5d9996ff',
+        'C_pos': '#ebcb2fff',
+        'C_neg': '#ddce7cff'
     };
 
-    // Pole background colors (independent)
     const poleColors = {
         1: '#fde68a',
         2: '#fbcfe8',
         3: '#bbf7d0',
-        4: '#bfdbfe'
+        4: '#bfdbfe',
+        5: '#fed7aa',
+        6: '#ddd6fe',
+        7: '#fecaca',
+        8: '#a7f3d0'
     };
 
-    winding.forEach(slot => {
+    winding.forEach((slot, index) => {
+        // Calculate pole based on SLOT POSITION
+        const slotPole = Math.floor(index / polePitchSlots) + 1;
 
         /* ---------- TOP ---------- */
         if (slot.top) {
             const t = slot.top;
-            const pol  = t.polarity === 'pos' ? '●' : '⊗';
+            const pol = t.polarity === 'pos' ? '●' : '⊗';
             const phaseKey = `${t.phase}_${t.polarity}`;
-            const poleBg = poleColors[t.pole] || '#e5e7eb';
+            const poleBg = poleColors[slotPole] || '#e5e7eb';
 
             html += `
                 <tr>
@@ -1113,7 +1111,7 @@ function createWindingTable(winding) {
                     </td>
                     <td>${pol}</td>
                     <td style="background:${poleBg};font-weight:700;">
-                        P${t.pole}
+                        P${slotPole}
                     </td>
                     <td>→ Slot ${t.coilEnd} (Bottom)</td>
                 </tr>
@@ -1123,9 +1121,9 @@ function createWindingTable(winding) {
         /* ---------- BOTTOM ---------- */
         if (slot.bottom) {
             const b = slot.bottom;
-            const pol  = b.polarity === 'pos' ? '●' : '⊗';
+            const pol = b.polarity === 'pos' ? '●' : '⊗';
             const phaseKey = `${b.phase}_${b.polarity}`;
-            const poleBg = poleColors[b.pole] || '#e5e7eb';
+            const poleBg = poleColors[slotPole] || '#e5e7eb';
 
             html += `
                 <tr>
@@ -1136,7 +1134,7 @@ function createWindingTable(winding) {
                     </td>
                     <td>${pol}</td>
                     <td style="background:${poleBg};font-weight:700;">
-                        P${b.pole}
+                        P${slotPole}
                     </td>
                     <td>← Slot ${b.coilStart} (Top)</td>
                 </tr>
@@ -1154,7 +1152,6 @@ function createWindingTable(winding) {
 
     table.innerHTML = html;
 }
-
 
 // ========= Info modal =========
 
@@ -1346,4 +1343,5 @@ if (themeToggleBtn) {
         localStorage.setItem('theme', isLight ? 'light' : 'dark');
         themeToggleBtn.textContent = isLight ? '🌙 Dark' : '☀️ Light';
     });
+}
 }
